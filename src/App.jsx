@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { Search, Clock, ArrowRight, ArrowLeft, Calendar, User, TrendingUp, Shield, Layers, GraduationCap, Linkedin, Twitter, Link2, ChevronDown, ChevronUp } from 'lucide-react';
 
 const blogPosts = [
@@ -109,24 +110,54 @@ const categories = [
   { name: "Academy & Guides", count: 5 }
 ];
 
-const Header = ({ onNavigate }) => (
-  <header className="border-b border-white/10 sticky top-0 bg-zinc-950/95 backdrop-blur-md z-50">
-    <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
-        <div className="w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-md flex items-center justify-center font-bold text-black text-xs">X</div>
-        <span className="font-semibold">XAUH</span>
-        <span className="text-white/30 text-sm ml-1">/ Blog</span>
+// Функция для преобразования категории в URL slug
+const categoryToSlug = (category) => {
+  const slugMap = {
+    "Gold Market Insights": "gold-market",
+    "Digital Assets & RWA": "digital-assets-rwa",
+    "XAUH Ecosystem": "xauh-ecosystem",
+    "Academy & Guides": "academy-guides"
+  };
+  return slugMap[category] || category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '').replace(/[^a-z0-9-]/g, '');
+};
+
+// Функция для генерации URL статьи
+const getArticleUrl = (post) => {
+  const categorySlug = categoryToSlug(post.category);
+  const titleSlug = encodeURIComponent(post.title);
+  return `/${categorySlug}/${titleSlug}`;
+};
+
+// Функция для поиска статьи по URL параметрам
+const findPostByUrl = (categorySlug, titleEncoded) => {
+  const title = decodeURIComponent(titleEncoded);
+  return blogPosts.find(post => {
+    const postCategorySlug = categoryToSlug(post.category);
+    return postCategorySlug === categorySlug && post.title === title;
+  });
+};
+
+const Header = () => {
+  const navigate = useNavigate();
+  return (
+    <header className="border-b border-white/10 sticky top-0 bg-zinc-950/95 backdrop-blur-md z-50">
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-7 h-7 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-md flex items-center justify-center font-bold text-black text-xs">X</div>
+          <span className="font-semibold">XAUH</span>
+          <span className="text-white/30 text-sm ml-1">/ Blog</span>
+        </div>
+        <nav className="flex items-center gap-4 text-xs text-white/60">
+          <a href="https://xauh.gold" className="hover:text-yellow-400 transition hidden sm:block">Home</a>
+          <button onClick={() => navigate('/')} className="text-yellow-400">Blog</button>
+          <a href="https://xauh.gold" className="px-3 py-1.5 bg-yellow-500 text-black font-medium rounded text-xs hover:bg-yellow-400 transition">
+            Get Started
+          </a>
+        </nav>
       </div>
-      <nav className="flex items-center gap-4 text-xs text-white/60">
-        <a href="https://xauh.gold" className="hover:text-yellow-400 transition hidden sm:block">Home</a>
-        <button onClick={() => onNavigate('home')} className="text-yellow-400">Blog</button>
-        <a href="https://xauh.gold" className="px-3 py-1.5 bg-yellow-500 text-black font-medium rounded text-xs hover:bg-yellow-400 transition">
-          Get Started
-        </a>
-      </nav>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
 const Footer = () => (
   <footer className="border-t border-white/5 py-4">
@@ -140,7 +171,8 @@ const Footer = () => (
   </footer>
 );
 
-const BlogHome = ({ onNavigate }) => {
+const BlogHome = () => {
+  const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("All");
   const featuredPost = blogPosts[0];
   const regularPosts = blogPosts.slice(1, 7);
@@ -188,7 +220,7 @@ const BlogHome = ({ onNavigate }) => {
       <div className="max-w-5xl mx-auto px-4 py-6">
         <section className="mb-8">
           <div 
-            onClick={() => onNavigate('article', featuredPost)}
+            onClick={() => navigate(getArticleUrl(featuredPost))}
             className="group cursor-pointer relative rounded-xl overflow-hidden border border-white/10 hover:border-yellow-500/30 transition"
           >
             <div className={`${featuredPost.gradient} p-6 sm:p-8`}>
@@ -222,7 +254,7 @@ const BlogHome = ({ onNavigate }) => {
               return (
                 <article 
                   key={post.id}
-                  onClick={() => onNavigate('article', post)}
+                  onClick={() => navigate(getArticleUrl(post))}
                   className="group cursor-pointer bg-white/5 rounded-lg overflow-hidden border border-white/5 hover:border-yellow-500/30 hover:bg-white/10 transition"
                 >
                   <div className={`relative h-20 sm:h-24 ${post.gradient} flex items-center justify-center`}>
@@ -267,9 +299,26 @@ const BlogHome = ({ onNavigate }) => {
   );
 };
 
-const ArticlePage = ({ post, onNavigate, allPosts }) => {
+const ArticlePage = () => {
+  const navigate = useNavigate();
+  const { categorySlug, title } = useParams();
   const [openFaq, setOpenFaq] = useState(null);
-  const relatedPosts = allPosts.filter(p => p.id !== post.id).slice(0, 3);
+  
+  const post = findPostByUrl(categorySlug, title);
+  const relatedPosts = blogPosts.filter(p => p.id !== post?.id).slice(0, 3);
+  
+  if (!post) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Article not found</h1>
+          <button onClick={() => navigate('/')} className="text-yellow-400 hover:underline">
+            Back to Blog
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const faqs = [
     { q: "Is Swiss gold really safer than gold from other countries?", a: "Yes, Swiss gold benefits from Switzerland's political neutrality, strict banking regulations, and world-renowned refinery standards. Swiss vaults offer maximum security with full insurance coverage and are not subject to foreign government seizure." },
@@ -282,7 +331,7 @@ const ArticlePage = ({ post, onNavigate, allPosts }) => {
     <>
       <div className={`${post.gradient}`}>
         <div className="max-w-3xl mx-auto px-4 py-8">
-          <button onClick={() => onNavigate('home')} className="flex items-center gap-2 text-white/60 hover:text-yellow-400 transition text-sm mb-6">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-white/60 hover:text-yellow-400 transition text-sm mb-6">
             <ArrowLeft className="w-4 h-4" /> Back to Blog
           </button>
           <div className="flex items-center gap-2 mb-4">
@@ -446,7 +495,7 @@ const ArticlePage = ({ post, onNavigate, allPosts }) => {
             {relatedPosts.map((p) => (
               <div
                 key={p.id}
-                onClick={() => { onNavigate('article', p); window.scrollTo(0, 0); }}
+                onClick={() => { navigate(getArticleUrl(p)); window.scrollTo(0, 0); }}
                 className="group cursor-pointer bg-white/5 rounded-lg p-3 border border-white/5 hover:border-yellow-500/30 transition"
               >
                 <span className="text-xs text-yellow-400">{p.category}</span>
@@ -462,23 +511,13 @@ const ArticlePage = ({ post, onNavigate, allPosts }) => {
 };
 
 export default function App() {
-  const [page, setPage] = useState('home');
-  const [currentPost, setCurrentPost] = useState(null);
-
-  const navigate = (target, post = null) => {
-    setPage(target);
-    setCurrentPost(post);
-    window.scrollTo(0, 0);
-  };
-
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <Header onNavigate={navigate} />
-      {page === 'home' ? (
-        <BlogHome onNavigate={navigate} />
-      ) : (
-        <ArticlePage post={currentPost} onNavigate={navigate} allPosts={blogPosts} />
-      )}
+      <Header />
+      <Routes>
+        <Route path="/" element={<BlogHome />} />
+        <Route path="/:categorySlug/:title" element={<ArticlePage />} />
+      </Routes>
       <Footer />
     </div>
   );
