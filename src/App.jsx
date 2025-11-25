@@ -5,7 +5,7 @@ import { Search, Clock, ArrowRight, ArrowLeft, Calendar, User, TrendingUp, Shiel
 const blogPosts = [
   {
     id: 1,
-    slug: "swiss-gold-safest-asset-2025",
+    slug: "why-swiss-gold",
     title: "Why Swiss Gold Remains the Safest Asset in 2025",
     excerpt: "Discover why Swiss gold continues to be the ultimate safe haven for investors amid global economic uncertainty and market volatility.",
     category: "Gold Market Insights",
@@ -124,16 +124,14 @@ const categoryToSlug = (category) => {
 // Функция для генерации URL статьи
 const getArticleUrl = (post) => {
   const categorySlug = categoryToSlug(post.category);
-  const titleSlug = encodeURIComponent(post.title);
-  return `/${categorySlug}/${titleSlug}`;
+  return `/${categorySlug}/${post.slug}`;
 };
 
 // Функция для поиска статьи по URL параметрам
-const findPostByUrl = (categorySlug, titleEncoded) => {
-  const title = decodeURIComponent(titleEncoded);
+const findPostByUrl = (categorySlug, articleSlug) => {
   return blogPosts.find(post => {
     const postCategorySlug = categoryToSlug(post.category);
-    return postCategorySlug === categorySlug && post.title === title;
+    return postCategorySlug === categorySlug && post.slug === articleSlug;
   });
 };
 
@@ -301,10 +299,10 @@ const BlogHome = () => {
 
 const ArticlePage = () => {
   const navigate = useNavigate();
-  const { categorySlug, title } = useParams();
+  const { categorySlug, slug } = useParams();
   const [openFaq, setOpenFaq] = useState(null);
   
-  const post = findPostByUrl(categorySlug, title);
+  const post = findPostByUrl(categorySlug, slug);
   const relatedPosts = blogPosts.filter(p => p.id !== post?.id).slice(0, 3);
   
   if (!post) {
@@ -516,7 +514,7 @@ export default function App() {
       <Header />
       <Routes>
         <Route path="/" element={<BlogHome />} />
-        <Route path="/:categorySlug/:title" element={<ArticlePage />} />
+        <Route path="/:categorySlug/:slug" element={<ArticlePage />} />
       </Routes>
       <Footer />
     </div>
